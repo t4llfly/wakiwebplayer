@@ -14,6 +14,7 @@ import {
   LogOut,
   Play,
   X,
+  RefreshCw,
 } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "./ui/badge";
@@ -24,6 +25,18 @@ import {
   DialogHeader,
   DialogTrigger,
 } from "./ui/dialog";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog";
 
 interface playerData {
   current: {
@@ -39,11 +52,15 @@ interface playerData {
   is_paused: boolean;
 }
 
+const ADMIN_IDS_LIST = ["478115060791640105"];
+
 export default function WakiPlayer() {
   const { data: session, status } = useSession();
   const [playerData, setPlayerData] = useState<playerData | null>(null);
   const [url, setUrl] = useState("");
   const [isSending, setIsSending] = useState(false);
+
+  const userId: string = session?.user?.id || "";
 
   useEffect(() => {
     let ws: WebSocket;
@@ -72,24 +89,82 @@ export default function WakiPlayer() {
   const handlePlay = async () => {
     if (!url || !session?.user?.id) return;
     setIsSending(true);
+
     try {
-      await fetch(process.env.NEXT_PUBLIC_BOT_API + "/api/play", {
+      const res = await fetch(process.env.NEXT_PUBLIC_BOT_API + "/api/play", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, user_id: session.user.id }),
       });
-      setUrl("");
-    } catch (e) {
-      console.error("Ошибка при добавлении:", e);
+      const result = await res.json();
+
+      if (result.error) {
+        toast.error("Ошибка", {
+          description: result.error,
+          position: "bottom-center",
+        });
+      } else {
+        toast.success("Добавлено", {
+          description: `Добавила "${result.title}" в очередь.`,
+          position: "bottom-center",
+        });
+        setUrl("");
+      }
+    } catch {
+      toast.error("Оффлайн", {
+        description: "Я сейчас не в сети.",
+        position: "bottom-center",
+      });
     } finally {
       setIsSending(false);
     }
   };
 
   const handleSkip = async () => {
-    await fetch(process.env.NEXT_PUBLIC_BOT_API + "/api/skip", {
-      method: "POST",
-    });
+    try {
+      await fetch(process.env.NEXT_PUBLIC_BOT_API + "/api/skip", {
+        method: "POST",
+      });
+      toast.success("Пропуск", {
+        description: "Пропустила песню.",
+        position: "bottom-center",
+      });
+    } catch {
+      toast.error("Ошибка", {
+        description: "Не смогла пропустить песню.",
+        position: "bottom-center",
+      });
+    }
+  };
+
+  const handleRestart = async () => {
+    try {
+      const res = await fetch(
+        process.env.NEXT_PUBLIC_BOT_API + "/api/restart",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: userId }),
+        },
+      );
+      const result = await res.json();
+      if (result.success) {
+        toast.success("Перезагрузка", {
+          description: "Я перезагружаюсь.",
+          position: "bottom-center",
+        });
+      } else {
+        toast.error("Ошибка", {
+          description: result.error,
+          position: "bottom-center",
+        });
+      }
+    } catch {
+      toast.error("Ошибка", {
+        description: "Не смогла перезагрузиться.",
+        position: "bottom-center",
+      });
+    }
   };
 
   const formatTime = (ms: number) => {
@@ -106,6 +181,7 @@ export default function WakiPlayer() {
           <p className="font-mono text-muted-foreground select-none">
             welcome.ts
           </p>
+          <X className="w-4 h-4 ml-auto text-muted-foreground hover:text-foreground transition-colors" />
         </div>
         <Card className="p-4 flex flex-col items-center gap-2 w-100">
           <Music className="w-12 h-12 text-muted-foreground" />
@@ -170,9 +246,45 @@ export default function WakiPlayer() {
           <div className="text-sm font-medium opacity-80">
             Привет, {session?.user?.name}
           </div>
-          <Button variant="ghost" size="icon" onClick={() => signOut()}>
-            <LogOut />
-          </Button>
+          <div>
+            {ADMIN_IDS_LIST.includes(userId) && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="icon">
+                    <RefreshCw />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="p-0 gap-0">
+                  <div className="flex w-full p-2 bg-card text-xs ring-1 ring-foreground/10">
+                    <p className="font-mono text-muted-foreground select-none">
+                      restartalert.ts
+                    </p>
+                    <X className="w-4 h-4 ml-auto text-muted-foreground hover:text-foreground transition-colors" />
+                  </div>
+                  <AlertDialogHeader className="p-4">
+                    <AlertDialogTitle>Ты уверен?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Это принудительно перезапустит меня и переподключит к
+                      серверам. Текущая музыка прервется, а очередь будет
+                      очищена.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="p-4">
+                    <AlertDialogCancel>Отмена</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleRestart}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Перезагрузить
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            <Button variant="ghost" size="icon" onClick={() => signOut()}>
+              <LogOut />
+            </Button>
+          </div>
         </div>
 
         <div className="flex gap-2 mb-2">
@@ -233,9 +345,9 @@ export default function WakiPlayer() {
             </div>
 
             <div className="flex justify-between items-center">
-              {/*<Badge variant="secondary">🔊 {playerData.volume}%</Badge> TODO fix here*/}
+              <Badge variant="secondary">🔊 {playerData.volume}%</Badge>
               <Button onClick={handleSkip} variant="outline" size="sm">
-                <SkipForward className="w-4 h-4 mr-2" /> Скип
+                <SkipForward className="w-4 h-4 mr-2" /> Пропустить
               </Button>
             </div>
           </>
