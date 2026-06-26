@@ -94,7 +94,7 @@ export default function WakiPlayer() {
     setIsSending(true);
 
     try {
-      const res = await fetch(process.env.NEXT_PUBLIC_BOT_API + "/bot/play", {
+      const res = await fetch("/bot/play", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, user_id: session.user.id }),
@@ -125,7 +125,7 @@ export default function WakiPlayer() {
 
   const handleSkip = async () => {
     try {
-      await fetch(process.env.NEXT_PUBLIC_BOT_API + "/bot/skip", {
+      await fetch("/bot/skip", {
         method: "POST",
       });
       toast.success("Пропуск", {
@@ -142,14 +142,11 @@ export default function WakiPlayer() {
 
   const handleRestart = async () => {
     try {
-      const res = await fetch(
-        process.env.NEXT_PUBLIC_BOT_API + "/bot/restart",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: userId }),
-        },
-      );
+      const res = await fetch("/bot/restart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      });
       const result = await res.json();
       if (result.success) {
         toast.success("Перезагрузка", {
