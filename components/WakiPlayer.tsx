@@ -67,7 +67,10 @@ export default function WakiPlayer() {
     let reconnectTimer: NodeJS.Timeout;
 
     const connect = () => {
-      ws = new WebSocket(process.env.NEXT_PUBLIC_BOT_WS + "/api/ws");
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/bot/ws`;
+
+      ws = new WebSocket(wsUrl);
 
       ws.onmessage = (event) => {
         setPlayerData(JSON.parse(event.data));
@@ -91,7 +94,7 @@ export default function WakiPlayer() {
     setIsSending(true);
 
     try {
-      const res = await fetch(process.env.NEXT_PUBLIC_BOT_API + "/api/play", {
+      const res = await fetch(process.env.NEXT_PUBLIC_BOT_API + "/bot/play", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, user_id: session.user.id }),
@@ -122,7 +125,7 @@ export default function WakiPlayer() {
 
   const handleSkip = async () => {
     try {
-      await fetch(process.env.NEXT_PUBLIC_BOT_API + "/api/skip", {
+      await fetch(process.env.NEXT_PUBLIC_BOT_API + "/bot/skip", {
         method: "POST",
       });
       toast.success("Пропуск", {
@@ -140,7 +143,7 @@ export default function WakiPlayer() {
   const handleRestart = async () => {
     try {
       const res = await fetch(
-        process.env.NEXT_PUBLIC_BOT_API + "/api/restart",
+        process.env.NEXT_PUBLIC_BOT_API + "/bot/restart",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
