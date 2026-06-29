@@ -205,6 +205,7 @@ export default function WakiPlayer() {
             playerState.voice_members.length > 0 && (
               <VoiceMembers members={playerState.voice_members} />
             )}
+          <div className="flex-2" />
           <div className="flex gap-2">
             <Button
               onClick={handlePauseResume}
