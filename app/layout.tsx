@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import AuthProvider from "@/components/SessionProvider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin", "cyrillic"],
@@ -39,7 +40,7 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {children}
+            <TooltipProvider>{children}</TooltipProvider>
             <Toaster />
           </ThemeProvider>
         </body>
